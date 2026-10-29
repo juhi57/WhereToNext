@@ -10,6 +10,8 @@ itinerary, a reconciled cost breakdown, and a PDF you can carry.
 ![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+![WhereToNext planning a six-day trip from Mumbai to Bali: the trip form on the left, and on the right a costed plan headed "6 days in Bali" with a WITHIN BUDGET badge, total, budget, headroom and per-person-per-day figures, and a budget breakdown with proportion bars.](docs/screenshot.jpg)
+
 ---
 
 ## The problem this solves
@@ -117,6 +119,8 @@ so a live pricing API can replace it without touching anything else. See
 ---
 
 ## What it does
+
+![A single day of the itinerary: timed activities with locations, descriptions and booking tips, a meals section whose dietary notes explain how each one fits a vegetarian diet, and a logistics section with the night's accommodation and local transport costs.](docs/screenshot-day.jpg)
 
 - **Full trip brief** — origin, destination, dates, party size, budget and
   currency, transport mode, stay tier, food preference, pace, interests,
