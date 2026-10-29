@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhereToNext - AI travel itinerary planner</title>
+<meta name="description" content="Plan a trip with an AI itinerary planner that reconciles every cost against reference pricing, then export it as a PDF.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128506;</text></svg>">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">W</span>
+      <div>
+        <h1>WhereToNext</h1>
+        <p class="tagline">AI itineraries with budgets that actually add up</p>
+      </div>
+    </div>
+    <div class="masthead-status">
+      <span id="engine-badge" class="badge badge-muted">checking engine…</span>
+      <a class="ghost-link" href="/docs" target="_blank" rel="noopener">API docs</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap layout">
+  <!-- ------------------------------------------------------------------ -->
+  <section class="panel" aria-labelledby="form-heading">
+    <h2 id="form-heading">Your trip</h2>
+    <form id="trip-form" novalidate>
+      <div class="grid-2">
+        <label class="field">
+          <span>From</span>
+          <input name="origin" list="places" required placeholder="Mumbai" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>To</span>
+          <input name="destination" list="places" required placeholder="Bali, Indonesia" autocomplete="off">
+        </label>
+      </div>
+      <datalist id="places"></datalist>
+
+      <div class="grid-2">
+        <label class="field">
+          <span>Departure</span>
+          <input type="date" name="start_date" required>
+        </label>
+        <label class="field">
+          <span>Return</span>
+          <input type="date" name="end_date" required>
+        </label>
+      </div>
+
+      <div class="grid-3">
+        <label class="field">
+          <span>Adults</span>
+          <input type="number" name="adults" min="1" max="20" value="2" required>
+        </label>
+        <label class="field">
+          <span>Children</span>
+          <input type="number" name="children" min="0" max="20" value="0">
+        </label>
+        <label class="field">
+          <span>Currency</span>
+          <select name="currency" id="currency"></select>
+        </label>
+      </div>
+
+      <label class="field">
+        <span>Total budget <small id="budget-hint"></small></span>
+        <input type="number" name="budget_total" min="1" step="any" value="180000" required>
+      </label>
+
+      <div class="grid-2">
+        <label class="field">
+          <span>Main transport</span>
+          <select name="transport_modes" id="transport_modes"></select>
+        </label>
+        <label class="field">
+          <span>Stay type</span>
+          <select name="stay_type" id="stay_type"></select>
+        </label>
+      </div>
+
+      <div class="grid-2">
+        <label class="field">
+          <span>Food preference</span>
+          <select name="food_preference" id="food_preference"></select>
+        </label>
+        <label class="field">
+          <span>Pace</span>
+          <select name="pace" id="pace"></select>
+        </label>
+      </div>
+
+      <fieldset class="field">
+        <legend>Interests <small>pick up to 8</small></legend>
+        <div id="interests" class="chips"></div>
+      </fieldset>
+
+      <label class="field">
+        <span>Accessibility needs <small>optional</small></span>
+        <input name="accessibility_needs" maxlength="400" placeholder="Step-free access, no long walks">
+      </label>
+
+      <label class="field">
+        <span>Anything else <small>optional</small></span>
+        <textarea name="notes" rows="2" maxlength="800" placeholder="First trip abroad; want a mix of beaches and temples."></textarea>
+      </label>
+
+      <div id="form-errors" class="errors" role="alert" hidden></div>
+
+      <div class="actions">
+        <button type="button" id="estimate-btn" class="btn btn-secondary">Check my budget</button>
+        <button type="submit" id="plan-btn" class="btn btn-primary">Create itinerary</button>
+      </div>
+      <p class="fineprint">Costs are estimates from reference pricing data, not live quotes.</p>
+    </form>
+  </section>
+
+  <!-- ------------------------------------------------------------------ -->
+  <section class="panel results" aria-live="polite" aria-labelledby="results-heading">
+    <h2 id="results-heading" class="sr-only">Your plan</h2>
+
+    <div id="placeholder" class="placeholder">
+      <p class="placeholder-mark" aria-hidden="true">&#9992;</p>
+      <h3>Nothing planned yet</h3>
+      <p>Fill in the trip on the left. <strong>Check my budget</strong> gives an instant costing with no AI call; <strong>Create itinerary</strong> builds the full day-by-day plan.</p>
+    </div>
+
+    <div id="loading" class="loading" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="loading-text">Planning your trip…</p>
+      <p class="fineprint">This can take up to a minute when the AI planner is active.</p>
+    </div>
+
+    <div id="estimate" class="estimate" hidden></div>
+    <article id="plan" class="plan" hidden></article>
+  </section>
+</main>
+
+<footer class="wrap site-footer">
+  <p>WhereToNext &middot; built with FastAPI, Pydantic and Claude &middot; <a href="/docs">API</a></p>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Testing / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Application data
+*.db
+*.sqlite3
+wheretonext.db
+
+# Generated output (the sample under docs/ is committed on purpose)
+/sample-itinerary.pdf
+/*.pdf
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

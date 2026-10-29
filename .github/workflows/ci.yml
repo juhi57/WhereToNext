@@ -1,0 +1,158 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The suite never calls the API; this makes an accidental live call fail loudly
+  # instead of quietly spending money.
+  WTN_FORCE_HEURISTIC: "true"
+  WTN_ENVIRONMENT: test
+
+jobs:
+  quality:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check app tests --output-format=github
+
+      - name: Ruff format
+        run: ruff format --check app tests
+
+      - name: mypy
+        run: mypy app
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        exclude:
+          # One Windows job is enough to catch path and encoding problems.
+          - os: windows-latest
+            python-version: "3.11"
+          - os: windows-latest
+            python-version: "3.13"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run tests
+        run: pytest --cov=app --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  smoke:
+    name: End-to-end smoke test
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Generate an itinerary and a PDF without an API key
+        run: |
+          wheretonext plan \
+            --from Mumbai --to "Bali, Indonesia" \
+            --start "$(date -u -d '+45 days' +%Y-%m-%d)" --days 6 \
+            --budget 180000 --food vegetarian --interests beaches,food \
+            --pdf /tmp/itinerary.pdf
+
+      - name: Check the PDF is real
+        run: |
+          test -s /tmp/itinerary.pdf
+          head -c 5 /tmp/itinerary.pdf | grep -q '%PDF-'
+          echo "PDF size: $(stat -c%s /tmp/itinerary.pdf) bytes"
+
+      - name: Boot the server and hit the API
+        run: |
+          uvicorn app.main:app --port 8000 &
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/healthz && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/api/health | tee /dev/stderr | grep -q '"status":"ok"'
+          curl -fsS http://127.0.0.1:8000/api/options > /dev/null
+          curl -fsS -X POST http://127.0.0.1:8000/api/estimate \
+            -H 'Content-Type: application/json' \
+            -d "{\"origin\":\"Mumbai\",\"destination\":\"Goa\",\"start_date\":\"$(date -u -d '+45 days' +%Y-%m-%d)\",\"end_date\":\"$(date -u -d '+48 days' +%Y-%m-%d)\",\"budget_total\":40000}" \
+            | grep -q '"total"'
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: wheretonext:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run the container and probe it
+        run: |
+          docker run -d --name wtn -p 8000:8000 wheretonext:ci
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/healthz && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/api/health | grep -q '"status":"ok"'
+          docker rm -f wtn

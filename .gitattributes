@@ -1,0 +1,21 @@
+# Normalise all text to LF in the repository and in the working tree.
+# Without this, a Windows checkout gives the Makefile and the CI shell steps
+# CRLF endings, which break on Linux and inside the Docker image.
+* text=auto eol=lf
+
+# Binary files must never be line-ending converted - CRLF translation
+# corrupts them. The sample PDF is the one that bit us.
+*.pdf     binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.woff    binary
+*.woff2   binary
+*.zip     binary
+*.db      binary
+*.sqlite3 binary
+
+# Keep generated/vendored paths out of language statistics and diffs.
+docs/sample-itinerary.pdf linguist-generated=true
